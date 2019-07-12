@@ -1,8 +1,6 @@
 import pandas as pd
-import datetime
 
-#sFile = "OPSD_time_series_60min_singleindex.csv"
-sFile = r"C:\Users\benjamin.portner\PycharmProjects\PowerFuel\data\OPSD_time_series_60min_singleindex.csv"
+sFile = "OPSD_time_series_60min_singleindex.csv"
 df = pd.read_csv(sFile, parse_dates=['utc_timestamp'])
 
 df_filtered = df[[

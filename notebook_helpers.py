@@ -4,7 +4,6 @@ from bokeh.palettes import Category10
 from bokeh.models.tools import HoverTool
 from bokeh.models import LinearAxis, Range1d
 import pandas as pd
-import datetime
 
 width = 900
 height = 600
@@ -12,9 +11,14 @@ height = 600
 def plotGenerationData(df):
     p = figure(title="", x_axis_label='date', x_axis_type='datetime',
                y_axis_label='power generated [MW]', plot_width=width, plot_height=height)
-    p.line(x=df["utc_timestamp"], y=df["DE_solar_generation_actual"], line_width=1, alpha=0.7, legend="solar", line_color=Category10[3][0])
-    p.line(x=df["utc_timestamp"], y=df["DE_wind_generation_actual"], line_width=1, alpha=0.7, legend="wind", line_color=Category10[3][1])
-    p.line(x=df["utc_timestamp"], y=df["DE_wind_plus_solar_generation_actual"], line_width=1, alpha=0.7, legend="total", line_color=Category10[3][2])
+    p.line(x=df["utc_timestamp"], y=df["DE_wind_plus_solar_generation_actual"], line_width=1, alpha=0.7, legend="combined",
+           line_color=Category10[3][2])
+    p.line(x=df["utc_timestamp"], y=df["DE_wind_generation_actual"], line_width=1, alpha=0.7, legend="wind",
+           line_color=Category10[3][1])
+    p.line(x=df["utc_timestamp"], y=df["DE_solar_generation_actual"], line_width=1, alpha=0.7, legend="solar",
+           line_color=Category10[3][0])
+
+
 
     # add hover tool for data exploration
     p.add_tools(HoverTool(
@@ -40,7 +44,20 @@ def plotPriceData(df):
 
     p = figure(title="", x_axis_label='date', x_axis_type='datetime',
                y_axis_label='day-ahead price [€/MWh]', plot_width=width, plot_height=height)
-    p.line(x=df["utc_timestamp"], y=df["DE_price_day_ahead"], line_width=1, alpha=0.7)
+
+    # combined generation data is muted by default
+    p.extra_y_ranges = {"CDF": Range1d(start=0, end=df["DE_wind_plus_solar_generation_actual"].max() * 1.05)}
+    p.add_layout(LinearAxis(y_range_name="CDF", axis_label="combined power generation [MW]"), 'right')
+    generation = p.line(x=df["utc_timestamp"], y=df["DE_wind_plus_solar_generation_actual"], line_width=1, alpha=0.7, legend="combined generation",
+           line_color=Category10[3][2], muted_color=Category10[3][2], muted_alpha=0.2, y_range_name="CDF")
+    generation.muted = True
+
+    # price data
+    p.line(x=df["utc_timestamp"], y=df["DE_price_day_ahead"], line_width=1, alpha=0.7, legend="market price",
+           line_color=Category10[3][0], muted_color=Category10[3][0], muted_alpha=0.2)
+    p.y_range = Range1d(
+        df["DE_price_day_ahead"].min() * (1 + 0.05), df["DE_price_day_ahead"].max() * (1 + 0.05)
+    )
 
     # add hover tool for data exploration
     p.add_tools(HoverTool(
@@ -53,6 +70,9 @@ def plotPriceData(df):
             "x": "datetime"
         }
     ))
+
+    # make legend clickable
+    p.legend.click_policy = "mute"
 
     # show graphic
     output_notebook()
